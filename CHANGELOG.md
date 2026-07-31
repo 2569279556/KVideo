@@ -1,5 +1,13 @@
 # Changelog
 
+## 4.9.20 - 2026-07-31
+
+- 新增独立 `verification/` 严格验证套件，可通过 `./verification/run` 一键执行源码行数、AST 复杂度、函数长度、嵌套、依赖环、重复代码、secret、危险构造、ESLint、TypeScript、单元测试、依赖完整性与漏洞审计。
+- 覆盖 Next.js、Cloudflare Pages 和 Docker 构建/运行，自动发现 API 方法，并验证异常输入、SSE、代理 Range/HLS/CORS/重定向/SSRF、延迟、并发、安全响应头、PWA 与公开发布版本一致性。
+- 新增四视口页面渲染、Axe 可访问性、递归 UI 状态与全部发现控件交互；每条动作记录完整恢复步骤和匹配依据，并输出截图、像素 diff 与 Playwright trace。
+- 新增确定性 MP4/HLS、分辨率、掉帧和 200ms 卡顿检测；报告同时提供 HTML、Markdown、JSON、JUnit、NDJSON 与完整原始日志，并自动脱敏。
+- 验证目录所有自有文件均不超过 150 行。本版本只加入验证基础设施与发布元数据，不修改现有业务代码；套件发现的项目缺陷会以非零退出码和详细证据保留，不伪装为通过。
+
 ## 4.9.19 - 2026-07-31
 
 - 修复 Docker / Node 自托管下 `/api/user/sync` 与 `/api/user/config` 无法从 `process.env` 读取 Upstash 凭据、持续返回 500 的问题；Redis 客户端改为按请求环境惰性创建，未配置同步时明确返回 503（#226 / PR #227）。
