@@ -9,6 +9,8 @@ Run the complete read-only validation chain from the repository root:
 The runner installs its pinned tools inside this directory, builds and starts
 KVideo locally, exercises APIs and UI, and writes evidence under
 `verification/artifacts/<run-id>/`. It does not edit application source.
+The repository `.dockerignore` excludes this entire directory so dependencies,
+reports, traces, and screenshots never enter the application build context.
 
 Primary outputs:
 
