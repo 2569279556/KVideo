@@ -4,8 +4,19 @@
     "name": "KVideo",
     "branch": "main"
   },
-  "currentVersion": "4.9.19",
+  "currentVersion": "4.9.20",
   "releases": [
+    {
+      "version": "4.9.20",
+      "publishedAt": "2026-07-31",
+      "title": "新增严格全链路验证套件",
+      "notes": [
+        "新增独立 verification 目录与一键运行命令，覆盖源码结构、复杂度、依赖、安全、构建、Docker、API、代理、性能、PWA 与发布一致性检查。",
+        "新增四视口页面渲染、Axe 可访问性、递归 UI 状态与控件交互验证，并记录每次动作的恢复步骤、匹配依据、异常、截图和 Playwright trace。",
+        "新增确定性 MP4/HLS 播放、分辨率、掉帧与 200ms 卡顿检测，以及本地和 Cloudflare 的像素差异报告。",
+        "验证结果同时输出 HTML、Markdown、JSON、JUnit、NDJSON 和原始命令日志；验证器自有文件全部限制在 150 行以内，且不会修改业务源码。"
+      ]
+    },
     {
       "version": "4.9.19",
       "publishedAt": "2026-07-31",
