@@ -1,3 +1,4 @@
+import fs from 'node:fs';
 import path from 'node:path';
 import { runCommand } from '../core/command.mjs';
 import { finding } from '../core/finding.mjs';
@@ -6,6 +7,13 @@ import { writeJson } from '../core/files.mjs';
 
 function digest(output) {
   return output?.match(/^Digest:\s+(sha256:[a-f0-9]+)/m)?.[1] || null;
+}
+
+export function latestDeployment(output) {
+  try {
+    const rows = JSON.parse(output);
+    return Array.isArray(rows) ? rows[0] || null : null;
+  } catch { return null; }
 }
 
 export async function checkDeployment(ctx) {
@@ -21,15 +29,24 @@ export async function checkDeployment(ctx) {
   const latest = await runCommand(ctx, 'dockerhub-latest', 'docker', ['buildx', 'imagetools', 'inspect', 'kuekhaoyang/kvideo:latest'], { timeoutMs: 120_000 });
   const versioned = await runCommand(ctx, 'dockerhub-version', 'docker', ['buildx', 'imagetools', 'inspect', `kuekhaoyang/kvideo:${ctx.state.version}`], { timeoutMs: 120_000 });
   const wrangler = path.join(ctx.config.verifyDir, 'node_modules', '.bin', 'wrangler');
-  const pages = await runCommand(ctx, 'cloudflare-deployments', wrangler, ['pages', 'deployment', 'list', '--project-name', 'kvideo'], { timeoutMs: 120_000 });
+  const pages = await runCommand(ctx, 'cloudflare-deployments', wrangler, ['pages', 'deployment', 'list', '--project-name', 'kvideo', '--environment', 'production', '--json'], { timeoutMs: 120_000 });
+  const deployment = latestDeployment(fs.readFileSync(pages.outputPath, 'utf8'));
+  const deployedRelease = deployment?.Deployment ? await request(`${deployment.Deployment}/api/app-update`) : null;
   const githubVersion = jsonBody(githubPackage)?.version;
   const cloudVersion = jsonBody(cloudflare)?.currentVersion;
+  const deployedVersion = jsonBody(deployedRelease)?.currentVersion;
   const latestDigest = digest(latest.tail);
   const versionDigest = digest(versioned.tail);
-  const facts = { localSha, remoteSha, localVersion: ctx.state.version, githubVersion, cloudVersion, latestDigest, versionDigest, pagesMentionsSha: pages.tail.includes(localSha.slice(0, 7)) };
+  const deploymentSha = deployment?.Source || null;
+  const deploymentUrl = deployment?.Deployment || null;
+  const facts = { localSha, remoteSha, localVersion: ctx.state.version, githubVersion, cloudVersion, deployedVersion,
+    deploymentSha, deploymentUrl, latestDigest, versionDigest };
   const target = path.join(ctx.dirs.raw, 'deployment-consistency.json');
-  writeJson(target, { facts, githubPackage, cloudflare, evidence: { latest: latest.outputPath, versioned: versioned.outputPath, pages: pages.outputPath } });
-  const ok = localSha === remoteSha && githubVersion === ctx.state.version && cloudVersion === ctx.state.version && latestDigest && latestDigest === versionDigest;
+  writeJson(target, { facts, githubPackage, cloudflare, deployedRelease, deployment,
+    evidence: { latest: latest.outputPath, versioned: versioned.outputPath, pages: pages.outputPath } });
+  const ok = localSha === remoteSha && githubVersion === ctx.state.version && cloudVersion === ctx.state.version
+    && deploymentSha === localSha.slice(0, 7) && deployedVersion === ctx.state.version
+    && latestDigest && latestDigest === versionDigest;
   finding(ctx, {
     id: 'deploy.consistency', category: 'deployment', title: 'Local, GitHub main, Cloudflare, and both Docker tags agree',
     status: ok ? 'PASS' : 'FAIL', severity: 'critical', expected: 'Same Git commit/version; Docker latest and version tags share one digest', actual: JSON.stringify(facts),
