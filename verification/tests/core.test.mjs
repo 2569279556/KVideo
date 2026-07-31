@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { numericCandidate, prepareActionState } from '../src/browser/action-state.mjs';
 import { getConfig } from '../src/config.mjs';
+import { latestDeployment } from '../src/checks/deployment.mjs';
 import { redact, redactText } from '../src/core/redact.mjs';
 import { escapeXml } from '../src/core/xml.mjs';
 
@@ -40,4 +41,13 @@ test('accepts explicit full-run action budgets', () => {
   const config = getConfig(['node', 'verify', '--root', process.cwd(), '--max-actions', '1234', '--max-action-depth', '7']);
   assert.equal(config.maxActionStates, 1234);
   assert.equal(config.maxActionDepth, 7);
+});
+
+test('selects the newest Cloudflare production deployment', () => {
+  const output = JSON.stringify([
+    { Environment: 'Production', Source: 'abcdef1', Deployment: 'https://new.pages.dev' },
+    { Environment: 'Production', Source: '1234567', Deployment: 'https://old.pages.dev' },
+  ]);
+  assert.equal(latestDeployment(output)?.Source, 'abcdef1');
+  assert.equal(latestDeployment('not json'), null);
 });

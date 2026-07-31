@@ -25,6 +25,13 @@ export function runCommand(ctx, name, command, args = [], options = {}) {
     });
     let tail = '';
     let timedOut = false;
+    let settled = false;
+    const finish = (result) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeout);
+      stream.end(() => resolve(result));
+    };
     const capture = (chunk) => {
       const text = chunk.toString();
       stream.write(text);
@@ -39,14 +46,10 @@ export function runCommand(ctx, name, command, args = [], options = {}) {
       setTimeout(() => terminate(child, 'SIGKILL'), 3000).unref();
     }, options.timeoutMs || ctx.config.commandTimeoutMs);
     child.on('error', (error) => {
-      clearTimeout(timeout);
-      stream.end();
-      resolve({ code: 127, error: error.message, tail, outputPath, timedOut, durationMs: Date.now() - started });
+      finish({ code: 127, error: error.message, tail, outputPath, timedOut, durationMs: Date.now() - started });
     });
     child.on('exit', (code, signal) => {
-      clearTimeout(timeout);
-      stream.end();
-      resolve({ code: code ?? 1, signal, tail, outputPath, timedOut, durationMs: Date.now() - started });
+      finish({ code: code ?? 1, signal, tail, outputPath, timedOut, durationMs: Date.now() - started });
     });
   });
 }
